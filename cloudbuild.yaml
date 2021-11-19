@@ -1,11 +1,25 @@
 steps:
   - name: "gcr.io/cloud-builders/docker"
     entrypoint: "bash"
-    args:
-      [
+    args: [
         "-c",
-        "docker pull $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest || exit 0",
+        "docker pull $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest || true \
+        && docker pull $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest || exit 0",
       ]
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - build
+      - "-t"
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:$COMMIT_SHA"
+      - "-t"
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest"
+      - "--cache-from"
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest"
+      - api
+      - "-f"
+      - "api/builder.Dockerfile"
+    id: Build builder image
+    timeout: 900s
   - name: gcr.io/cloud-builders/docker
     args:
       - build
@@ -15,21 +29,22 @@ steps:
       - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest"
       - "--cache-from"
       - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest"
+      - "--build-arg"
+      - "BUILDER_IMG=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest"
       - api
       - "-f"
       - api/Dockerfile
-    id: Build
-    timeout: 900s
+    id: Build final image
   - name: gcr.io/cloud-builders/docker
-    args:
-      - push
-      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+    entrypoint: "bash"
+    args: [
+        "-c",
+        "docker push $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA \
+        && docker push $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest \
+        && docker push $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:$COMMIT_SHA \
+        && docker push $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest",
+      ]
     id: Push
-  - name: gcr.io/cloud-builders/docker
-    args:
-      - push
-      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest"
-    id: Push latest
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
     args:
       - run
@@ -47,6 +62,8 @@ steps:
 images:
   - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
   - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest"
+  - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:$COMMIT_SHA"
+  - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest"
 options:
   substitutionOption: ALLOW_LOOSE
 substitutions:

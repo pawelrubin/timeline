@@ -17,7 +17,7 @@ steps:
       - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest"
       - api
       - "-f"
-      - "api/builder.Dockerfile"
+      - "api/docker/prod/builder.Dockerfile"
     id: Build builder image
     timeout: 900s
   - name: gcr.io/cloud-builders/docker
@@ -33,7 +33,7 @@ steps:
       - "BUILDER_IMG=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest"
       - api
       - "-f"
-      - api/Dockerfile
+      - api/docker/prod/final.Dockerfile
     id: Build final image
   - name: gcr.io/cloud-builders/docker
     entrypoint: "bash"

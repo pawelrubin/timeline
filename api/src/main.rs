@@ -14,7 +14,7 @@ use std::env;
 #[launch]
 pub fn rocket() -> _ {
     let port: u16 = env::var("PORT")
-        .unwrap_or("8080".to_string())
+        .unwrap_or_else(|_| "8080".to_string())
         .parse()
         .unwrap();
     let figment = rocket::Config::figment().merge(("port", port));

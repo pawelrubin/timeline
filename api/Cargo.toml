@@ -1,11 +1,30 @@
 [package]
 name = "timeline"
 version = "0.1.0"
+authors = [
+    "Paweł Rubin <pawelrubin19@gmail.com>",
+    "Konrad Grochowski <konrad7g@gmail.com>",
+    "Bartosz Rajczyk <bartorkrajczyk@gmail.com>",
+]
 edition = "2021"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rocket = "0.5.0-rc.1"
 jsonwebtoken = "7.2.0"
-serde = { version = "1.0.130", features = ["derive"] }
+async-stream = { version = "^0.3" }
+async-trait = { version = "0.1" }
+futures = { version = "^0.3" }
+futures-util = { version = "^0.3" }
+rocket = { git = "https://github.com/SergioBenitez/Rocket.git" }
+sea-orm = { version = "^0.4.0", features = [
+    "macros",
+    "runtime-tokio-rustls",
+], default-features = false }
+
+sea-orm-rocket = { git = "https://github.com/SeaQL/sea-orm" }
+
+[features]
+default = ["sqlx-postgres"]
+sqlx-postgres = ["sea-orm/sqlx-postgres"]

@@ -12,6 +12,7 @@ RUN cargo build && \
 
 # copy source code
 COPY ./src ./src
+COPY ./Rocket.toml ./Rocket.toml
 
 # build the project
 RUN cargo build
@@ -21,6 +22,6 @@ FROM debian:buster-slim
 
 # copy the build artifact from the build stage
 COPY --from=builder /timeline/target/debug/timeline .
-
+COPY --from=builder /timeline/Rocket.toml .
 # run
 CMD ["./timeline"]

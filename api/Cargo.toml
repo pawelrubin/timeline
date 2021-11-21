@@ -16,7 +16,9 @@ async-stream = { version = "^0.3" }
 async-trait = { version = "0.1" }
 futures = { version = "^0.3" }
 futures-util = { version = "^0.3" }
-rocket = { git = "https://github.com/SergioBenitez/Rocket.git" }
+chrono = { version = "^0.4.19" }
+uuid = { version = "^0.8.2" }
+rocket = { git = "https://github.com/SergioBenitez/Rocket.git", features = ["json", "uuid"] }
 sea-orm = { version = "^0.4.0", features = [
     "macros",
     "runtime-tokio-native-tls",

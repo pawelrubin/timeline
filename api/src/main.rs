@@ -1,15 +1,23 @@
 #[macro_use]
 extern crate rocket;
+#[macro_use]
+extern crate serde;
 
 #[cfg(test)]
 mod tests;
+
+mod auth;
+use std::env;
 
 #[get("/")]
 async fn index() -> &'static str {
     "Hello, world!"
 }
 
-use std::env;
+#[get("/hello")]
+async fn hello(user: auth::UserClaims) -> String {
+    format!("Hello, {}!", user.email)
+}
 
 #[launch]
 pub fn rocket() -> _ {
@@ -18,5 +26,5 @@ pub fn rocket() -> _ {
         .parse()
         .unwrap();
     let figment = rocket::Config::figment().merge(("port", port));
-    rocket::custom(figment).mount("/", routes![index])
+    rocket::custom(figment).mount("/", routes![index, hello])
 }

@@ -15,8 +15,8 @@ class Layout extends StatelessWidget {
       appBar: AppBar(
         centerTitle: true,
         title: Hero(
-          child:
-              Text('parkowaNIE', style: Theme.of(context).textTheme.headline5),
+          child: Text('Timeline app',
+              style: Theme.of(context).textTheme.headline5),
           tag: 'bar/title',
         ),
         actions: actions,

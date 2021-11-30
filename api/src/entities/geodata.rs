@@ -26,6 +26,19 @@ pub struct Model {
     pub accuracy: u8,
     pub activity: Activity
 }
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct InputData {
+    pub uid: i64,
+    pub timestamp: NaiveDateTime,
+    pub created_at: NaiveDateTime,
+    pub lat: f64,
+    pub lng: f64,
+    pub accuracy: u8,
+    pub activity: Activity
+}
+
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
 

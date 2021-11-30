@@ -5,25 +5,32 @@ extern crate rocket;
 mod tests;
 
 mod auth;
+
 use std::env;
-use sea_orm::{ConnectionTrait, DatabaseBackend, Statement, Set};
-use sea_orm::{entity::*};
+
+mod db;
+use db::migrations;
+use crate::db::pool::Db;
+
+mod entities;
+use entities::Geodata;
+
+use sea_orm::{ConnectionTrait, EntityTrait, DatabaseBackend, Statement, Set, ActiveModelTrait};
 use sea_orm_rocket::{Connection, Database};
+
+use rocket::{Build, Rocket};
 use rocket::serde::{json::Json, uuid::Uuid};
+use rocket::fairing::{self, AdHoc};
 
-mod pool;
-use pool::Db;
 
-mod geodata;
-pub use geodata::Entity as Geodata;
 
 #[get("/geodata/<id>")]
 async fn get(
     conn: Connection<'_, Db>,
     id: Uuid,
-) -> Result<rocket::serde::json::Json<geodata::Model>, rocket::response::Debug<sea_orm::DbErr>> {
+) -> Result<Json<entities::geodata::Model>, rocket::response::Debug<sea_orm::DbErr>> {
     let db = conn.into_inner();
-    let geodata: geodata::Model = Geodata::find_by_id(id)
+    let geodata: entities::geodata::Model = Geodata::find_by_id(id)
         .one(db)
         .await
         .expect("could not find geodata")
@@ -31,21 +38,21 @@ async fn get(
     Ok(Json(geodata))
 }
 
-#[post("/geodata", format = "json", data = "<json_geodata>")]
+#[post("/geodata", format = "json", data = "<wrapped_geodata>")]
 async fn post(
     conn: Connection<'_, Db>,
-    json_geodata: Json<geodata::Model>,
+    wrapped_geodata: Json<entities::geodata::InputData>,
 ) -> Result<(), rocket::response::Debug<sea_orm::DbErr>> {
     let db = conn.into_inner();
-    let geodata_obj = json_geodata.into_inner();
-    geodata::ActiveModel {
-        uid: Set(geodata_obj.uid.to_owned()),
-        timestamp: Set(geodata_obj.timestamp.to_owned()),
-        created_at: Set(geodata_obj.created_at.to_owned()),
-        lat: Set(geodata_obj.lat.to_owned()),
-        lng: Set(geodata_obj.lng.to_owned()),
-        activity: Set(geodata_obj.activity.to_owned()),
-        accuracy: Set(geodata_obj.accuracy.to_owned()),
+    let geodata = wrapped_geodata.clone().into_inner();
+    entities::geodata::ActiveModel {
+        uid: Set(geodata.uid.to_owned()),
+        timestamp: Set(geodata.timestamp.to_owned()),
+        created_at: Set(geodata.created_at.to_owned()),
+        lat: Set(geodata.lat.to_owned()),
+        lng: Set(geodata.lng.to_owned()),
+        activity: Set(geodata.activity.to_owned()),
+        accuracy: Set(geodata.accuracy.to_owned()),
         ..Default::default()
         
     }
@@ -75,6 +82,14 @@ async fn hello(user: auth::UserClaims) -> String {
     format!("Hello, {}!", user.email)
 }
 
+
+async fn run_migrations(rocket: Rocket<Build>) -> fairing::Result {
+    let conn = &Db::fetch(&rocket).unwrap().conn;
+    let _ = migrations::create_tables(conn).await;
+    Ok(rocket)
+}
+
+
 #[launch]
 pub fn rocket() -> _ {
     let port: u16 = env::var("PORT")
@@ -84,5 +99,6 @@ pub fn rocket() -> _ {
     let figment = rocket::Config::figment().merge(("port", port));
     rocket::custom(figment)
         .attach(Db::init())
+        .attach(AdHoc::try_on_ignite("Migrations", run_migrations))
         .mount("/", routes![index, hello, get, post])
 }

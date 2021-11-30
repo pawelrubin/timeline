@@ -1,7 +1,5 @@
 #[macro_use]
 extern crate rocket;
-#[macro_use]
-extern crate serde;
 
 #[cfg(test)]
 mod tests;

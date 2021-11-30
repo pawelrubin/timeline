@@ -1,5 +1,6 @@
 use rocket::http::Status;
 use rocket::request::{self, FromRequest, Request};
+use rocket::serde::{Serialize,Deserialize};
 
 #[derive(Debug)]
 pub enum AuthError {
@@ -9,6 +10,7 @@ pub enum AuthError {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "rocket::serde")]
 pub struct UserClaims {
     /// uid of the user.
     pub sub: String,

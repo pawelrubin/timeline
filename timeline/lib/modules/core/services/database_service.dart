@@ -1,11 +1,20 @@
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:timeline/modules/core/model/location_entry.dart';
 
-const String boxName = 'location';
+class DatabaseService extends ChangeNotifier {
+  List<LocationEntry> entries = [];
+  Box<LocationEntry> box;
 
-class DatabaseService {
+  DatabaseService({required this.box}) {
+    box.listenable().addListener(() {
+      entries = box.values.toList();
+      notifyListeners();
+    });
+  }
+
   addLocation(LocationEntry location) {
-    Hive.box(boxName).add(location);
+    box.add(location);
   }
 }

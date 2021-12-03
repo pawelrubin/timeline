@@ -1,9 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:timeline/modules/core/services/authentication_service.dart';
+import 'package:timeline/modules/core/services/database_service.dart';
 import 'package:timeline/modules/core/widgets/layout.dart';
 import 'package:timeline/modules/login/views/splash_view.dart';
+import 'package:timeline/modules/map/views/map_view.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({Key? key}) : super(key: key);
@@ -28,8 +29,20 @@ class HomeView extends StatelessWidget {
         TextButton(
             onPressed: () => _logout(context), child: const Text('Logout'))
       ],
-      body: const Center(
-        child: Text('Home view'),
+      body: Center(
+        child: Column(
+          children: [
+            const Text('Home view'),
+            TextButton(
+                onPressed: () => Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => MapView())),
+                child: const Text("Let's see a map")),
+            Consumer<DatabaseService>(
+                builder: (context, db, widget) => Text(db.entries
+                    .map((e) => "${e.latitude}, ${e.longitude}")
+                    .join("\n")))
+          ],
+        ),
       ),
     );
   }

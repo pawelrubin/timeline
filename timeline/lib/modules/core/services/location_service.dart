@@ -17,7 +17,7 @@ class LocationService {
 
     bg.BackgroundGeolocation.ready(bg.Config(
             desiredAccuracy: bg.Config.DESIRED_ACCURACY_HIGH,
-            distanceFilter: 10.0,
+            distanceFilter: 1.0,
             stopOnTerminate: false,
             startOnBoot: true,
             debug: true,

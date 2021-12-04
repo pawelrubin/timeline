@@ -19,7 +19,7 @@ use sea_orm::{ConnectionTrait, EntityTrait, DatabaseBackend, Statement, Set, Act
 use sea_orm_rocket::{Connection, Database};
 
 use rocket::{Build, Rocket};
-use rocket::serde::{json::Json, uuid::Uuid};
+use rocket::serde::{json::Json,};
 use rocket::fairing::{self, AdHoc};
 
 
@@ -27,7 +27,7 @@ use rocket::fairing::{self, AdHoc};
 #[get("/geodata/<id>")]
 async fn get(
     conn: Connection<'_, Db>,
-    id: Uuid,
+    id: i64,
 ) -> Result<Json<entities::geodata::Model>, rocket::response::Debug<sea_orm::DbErr>> {
     let db = conn.into_inner();
     let geodata: entities::geodata::Model = Geodata::find_by_id(id)
@@ -51,8 +51,8 @@ async fn post(
         created_at: Set(geodata.created_at.to_owned()),
         lat: Set(geodata.lat.to_owned()),
         lng: Set(geodata.lng.to_owned()),
-        activity: Set(geodata.activity.to_owned()),
         accuracy: Set(geodata.accuracy.to_owned()),
+        activity: Set(geodata.activity.to_owned()),
         ..Default::default()
         
     }

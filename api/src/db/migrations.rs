@@ -1,5 +1,7 @@
+use indoc::indoc;
+
 use crate::entities::*;
-use sea_orm::{ConnectionTrait, DbConn, EntityTrait, Schema};
+use sea_orm::{ConnectionTrait, DatabaseBackend, DbConn, EntityTrait, Schema, Statement};
 
 async fn create_enum<E>(db: &DbConn, entity: E)
 where
@@ -10,7 +12,21 @@ where
     let stmts = schema
         .create_enum_from_entity(entity)
         .iter()
-        .map(|stmt| builder.build(stmt))
+        .map(|stmt| {
+            Statement::from_string(
+                DatabaseBackend::Postgres,
+                format!(
+                    indoc! {"
+                        DO $$ BEGIN
+                            {}
+                        EXCEPTION
+                            WHEN duplicate_object THEN null;
+                        END $$;  
+                    "},
+                    builder.build(stmt)
+                ),
+            )
+        })
         .collect::<Vec<_>>();
 
     for stmt in stmts {

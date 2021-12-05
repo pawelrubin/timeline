@@ -29,9 +29,8 @@ pub struct Model {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
-pub struct InputData {
+pub struct GeoDataJson {
     pub timestamp: NaiveDateTime,
-    pub created_at: NaiveDateTime,
     pub lat: f64,
     pub lng: f64,
     pub accuracy: i16,
@@ -42,3 +41,15 @@ pub struct InputData {
 pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
+
+impl From<Model> for GeoDataJson {
+    fn from(input: Model) -> Self {
+        Self {
+            timestamp: input.timestamp,
+            lat: input.lat,
+            lng: input.lng,
+            accuracy: input.accuracy,
+            activity: input.activity,
+        }
+    }
+}

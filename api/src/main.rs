@@ -13,7 +13,7 @@ use crate::db::pool::Db;
 use db::migrations;
 
 mod entities;
-use entities::Geodata;
+use entities::{GeoDataJson, Geodata};
 
 use chrono::{Duration, Utc};
 
@@ -28,9 +28,9 @@ use rocket::{Build, Rocket};
 async fn select_many(
     conn: Connection<'_, Db>,
     user: auth::UserClaims,
-) -> Result<Json<Vec<entities::geodata::Model>>, rocket::response::Debug<sea_orm::DbErr>> {
+) -> Result<Json<Vec<GeoDataJson>>, rocket::response::Debug<sea_orm::DbErr>> {
     let db = conn.into_inner();
-    let geodata_vec: Vec<entities::geodata::Model> = Geodata::find()
+    let db_data: Vec<entities::geodata::Model> = Geodata::find()
         .filter(
             Condition::all()
                 .add(entities::geodata::Column::Uid.eq(user.sub))
@@ -42,18 +42,20 @@ async fn select_many(
         .all(db)
         .await
         .expect("could not find geodata");
-    Ok(Json(geodata_vec))
+    Ok(Json(db_data.into_iter().map(|x| x.into()).collect()))
 }
 
-#[post("/geodata", format = "json", data = "<wrapped_geodata_vec>")]
+#[post("/geodata", format = "json", data = "<geodata>")]
 async fn insert_many(
     conn: Connection<'_, Db>,
     user: auth::UserClaims,
-    wrapped_geodata_vec: Json<Vec<entities::geodata::InputData>>,
+    geodata: Json<Vec<GeoDataJson>>,
 ) -> Result<(), rocket::response::Debug<sea_orm::DbErr>> {
+    // TODO: handle empty geodata
+
     let db = conn.into_inner();
-    let geodata_vec = wrapped_geodata_vec.clone().into_inner();
-    let parsed_geodata_vec = geodata_vec
+
+    let parsed_geodata_vec = geodata
         .iter()
         .map(|geodata| entities::geodata::ActiveModel {
             uid: Set(user.sub.to_owned()),
@@ -65,7 +67,8 @@ async fn insert_many(
             activity: Set(geodata.activity.to_owned()),
             ..Default::default()
         });
-    entities::geodata::Entity::insert_many(parsed_geodata_vec)
+
+    Geodata::insert_many(parsed_geodata_vec)
         .exec(db)
         .await
         .expect("Unable to insert geodata");

@@ -12,6 +12,7 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+indoc = "1.0.3"
 jsonwebtoken = "7.2.0"
 async-stream = { version = "^0.3" }
 async-trait = { version = "0.1" }
@@ -19,7 +20,10 @@ futures = { version = "^0.3" }
 futures-util = { version = "^0.3" }
 chrono = { version = "^0.4.19" }
 uuid = { version = "^0.8.2" }
-rocket = { git = "https://github.com/SergioBenitez/Rocket.git", features = ["json", "uuid"] }
+rocket = { git = "https://github.com/SergioBenitez/Rocket.git", features = [
+    "json",
+    "uuid",
+] }
 sea-orm = { version = "^0.4.0", features = [
     "macros",
     "runtime-tokio-rustls",

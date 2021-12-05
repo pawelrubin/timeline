@@ -35,15 +35,15 @@ impl<'r> FromRequest<'r> for UserClaims {
         let auth_header_value = match req.headers().get_one("Authorization") {
             Some(value) => value,
             None => {
-                return request::Outcome::Failure((Status::BadRequest, AuthError::MissingHeader))
+                return request::Outcome::Failure((Status::Unauthorized, AuthError::MissingHeader))
             }
         };
 
         if let Some(token) = auth_header_value.strip_prefix("Bearer ") {
-            match decode_token(token).await {
-                Ok(value) => return request::Outcome::Success(value),
+            return match decode_token(token).await {
+                Ok(value) => request::Outcome::Success(value),
                 Err(_) => {
-                    return request::Outcome::Failure((Status::BadRequest, AuthError::InvalidToken))
+                    request::Outcome::Failure((Status::Unauthorized, AuthError::InvalidToken))
                 }
             };
         }

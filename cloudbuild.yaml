@@ -19,7 +19,6 @@ steps:
       - "-f"
       - "api/docker/prod/builder.Dockerfile"
     id: Build builder image
-    timeout: 900s
   - name: gcr.io/cloud-builders/docker
     args:
       - build
@@ -77,4 +76,4 @@ tags:
   - gcp-cloud-build-deploy-cloud-run
   - gcp-cloud-build-deploy-cloud-run-managed
   - timeline
-timeout: 1200s
+timeout: 1800s

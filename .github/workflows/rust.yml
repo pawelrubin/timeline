@@ -13,6 +13,21 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: timeline
+        options: >-
+          --health-interval 10s
+          --health-cmd pg_isready
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - uses: actions/checkout@v2
 
@@ -25,12 +40,16 @@ jobs:
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: true
+          working-directory: api
+          target-dir: api/target
 
       - run: |
           cd api
           cargo check
           cargo test
         name: Run tests
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/timeline
 
   lint:
     runs-on: ubuntu-latest
@@ -55,5 +74,5 @@ jobs:
 
       - run: |
           cd api
-          cargo clippy --all-targets --all-features 
+          cargo clippy --all-targets --all-features
         name: Check linting

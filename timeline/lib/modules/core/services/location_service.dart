@@ -9,15 +9,16 @@ class LocationService {
   LocationService({this.database}) {
     bg.BackgroundGeolocation.onLocation((location) => {
           database?.addLocation(LocationEntry(
-              dateTime: DateTime.parse(location.timestamp),
+              timestamp: DateTime.parse(location.timestamp),
               longitude: location.coords.longitude,
-              altitude: location.coords.altitude,
-              latitude: location.coords.latitude))
+              latitude: location.coords.latitude,
+              accuracy: location.coords.accuracy,
+              activity: location.activity.type))
         });
 
     bg.BackgroundGeolocation.ready(bg.Config(
             desiredAccuracy: bg.Config.DESIRED_ACCURACY_HIGH,
-            distanceFilter: 1.0,
+            distanceFilter: 10.0,
             stopOnTerminate: false,
             startOnBoot: true,
             debug: true,

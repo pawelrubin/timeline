@@ -6,9 +6,10 @@ part 'location_entry.g.dart';
 class LocationEntry extends HiveObject {
   LocationEntry(
       {required this.longitude,
-      required this.altitude,
       required this.latitude,
-      required this.dateTime});
+      required this.timestamp,
+      required this.accuracy,
+      required this.activity});
 
   @HiveField(0)
   double latitude;
@@ -17,8 +18,30 @@ class LocationEntry extends HiveObject {
   double longitude;
 
   @HiveField(2)
-  double altitude;
+  DateTime timestamp;
 
   @HiveField(3)
-  DateTime dateTime;
+  String activity;
+
+  @HiveField(4)
+  double accuracy;
+
+  factory LocationEntry.fromJson(Map<String, dynamic> json) {
+    return LocationEntry(
+        longitude: json['lng'],
+        latitude: json['lat'],
+        timestamp: DateTime.parse(json['timestamp']),
+        accuracy: json['accuracy'],
+        activity: json['activity']);
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'lng': longitude,
+      'lat': latitude,
+      'timestamp': timestamp.toIso8601String(),
+      'accuracy': accuracy,
+      'activity': activity
+    };
+  }
 }

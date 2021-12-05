@@ -5,16 +5,25 @@ import 'package:timeline/modules/core/model/location_entry.dart';
 
 class DatabaseService extends ChangeNotifier {
   List<LocationEntry> entries = [];
-  Box<LocationEntry> box;
+  Box<LocationEntry> locationBox;
+  Box<dynamic> utilBox;
 
-  DatabaseService({required this.box}) {
-    box.listenable().addListener(() {
-      entries = box.values.toList();
+  DatabaseService({required this.locationBox, required this.utilBox}) {
+    locationBox.listenable().addListener(() {
+      entries = locationBox.values.toList();
       notifyListeners();
     });
   }
 
-  addLocation(LocationEntry location) {
-    box.add(location);
+  void addLocation(LocationEntry location) {
+    locationBox.add(location);
+  }
+
+  List<LocationEntry> getCurrentLocations() {
+    return locationBox.values.toList();
+  }
+
+  Future<void> clearLocations() async {
+    await locationBox.clear();
   }
 }

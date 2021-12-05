@@ -18,24 +18,27 @@ class LocationEntryAdapter extends TypeAdapter<LocationEntry> {
     };
     return LocationEntry(
       longitude: fields[1] as double,
-      altitude: fields[2] as double,
       latitude: fields[0] as double,
-      dateTime: fields[3] as DateTime,
+      timestamp: fields[2] as DateTime,
+      accuracy: fields[4] as double,
+      activity: fields[3] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, LocationEntry obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.latitude)
       ..writeByte(1)
       ..write(obj.longitude)
       ..writeByte(2)
-      ..write(obj.altitude)
+      ..write(obj.timestamp)
       ..writeByte(3)
-      ..write(obj.dateTime);
+      ..write(obj.activity)
+      ..writeByte(4)
+      ..write(obj.accuracy);
   }
 
   @override

@@ -10,6 +10,7 @@ import 'package:timeline/modules/core/model/location_entry.dart';
 import 'package:timeline/modules/core/services/api_service.dart';
 import 'package:timeline/modules/core/services/database_service.dart';
 import 'package:timeline/modules/core/services/location_service.dart';
+import 'package:timeline/modules/core/services/sync_data_service.dart';
 import 'package:timeline/modules/login/views/splash_view.dart';
 import 'modules/core/services/authentication_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -27,25 +28,33 @@ void main() async {
 
   // read values from env file
   var apiBaseUrl = dotenv.env['API_BASE_URL'] ?? '';
+  var syncInterval =
+      Duration(seconds: int.parse(dotenv.env['SYNC_INTERVAL'] ?? '10'));
 
   // setup hive
   Hive.registerAdapter(LocationEntryAdapter());
-  var box = await Hive.openBox<LocationEntry>(hiveBoxName);
+  var locationBox = await Hive.openBox<LocationEntry>(locationBoxName);
+  var utilBox = await Hive.openBox(utilBoxName);
 
   runApp(MultiProvider(
     providers: [
-      ChangeNotifierProvider(create: (_) => DatabaseService(box: box)),
+      ChangeNotifierProvider(
+          create: (_) =>
+              DatabaseService(locationBox: locationBox, utilBox: utilBox)),
       Provider(create: (_) => AuthenticationService()),
+      Provider(create: (_) => ApiService(apiBaseUrl: apiBaseUrl)),
       ProxyProvider<DatabaseService, LocationService>(
         update: (context, database, location) =>
             LocationService(database: database),
         create: (_) => LocationService(database: null),
         lazy: false,
       ),
-      ProxyProvider<DatabaseService, ApiService>(
-          update: (context, database, api) =>
-              ApiService(apiBaseUrl: apiBaseUrl, database: database),
-          create: (_) => ApiService(apiBaseUrl: apiBaseUrl, database: null))
+      ProxyProvider2<DatabaseService, ApiService, SyncDataService>(
+        update: (_, db, api, __) =>
+            SyncDataService(syncPeriod: syncInterval, database: db, api: api),
+        create: (_) => SyncDataService(syncPeriod: syncInterval),
+        lazy: false,
+      )
     ],
     child: const TimelineApp(),
   ));

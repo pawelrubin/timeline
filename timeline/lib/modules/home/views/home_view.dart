@@ -31,16 +31,16 @@ class HomeView extends StatelessWidget {
       ],
       body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text('Home view'),
+            Consumer<DatabaseService>(
+                builder: (context, db, widget) =>
+                    Text("There are ${db.entries.length} location entries")),
             TextButton(
                 onPressed: () => Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (_) => MapView())),
+                    .push(MaterialPageRoute(builder: (_) => const MapView())),
                 child: const Text("Let's see a map")),
-            Consumer<DatabaseService>(
-                builder: (context, db, widget) => Text(db.entries
-                    .map((e) => "${e.latitude}, ${e.longitude}")
-                    .join("\n")))
           ],
         ),
       ),

@@ -12,6 +12,7 @@ RUN cargo build --release && \
 
 # copy source code
 COPY ./src ./src
+COPY ./Rocket.toml ./Rocket.toml
 
 # build for release
 RUN cargo build --release

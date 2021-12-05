@@ -1,6 +1,6 @@
-use sea_orm::entity::prelude::*;
 use chrono::NaiveDateTime;
-use rocket::serde::{Serialize,Deserialize};
+use rocket::serde::{Deserialize, Serialize};
+use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, EnumIter, PartialEq, DeriveActiveEnum, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -18,25 +18,24 @@ pub enum Activity {
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
-    pub uid: i64,
+    pub uid: String,
     pub timestamp: NaiveDateTime,
     pub created_at: NaiveDateTime,
     pub lat: f64,
     pub lng: f64,
     pub accuracy: i16,
-    pub activity: Activity
+    pub activity: Activity,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct InputData {
-    pub uid: i64,
     pub timestamp: NaiveDateTime,
     pub created_at: NaiveDateTime,
     pub lat: f64,
     pub lng: f64,
     pub accuracy: i16,
-    pub activity: Activity
+    pub activity: Activity,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

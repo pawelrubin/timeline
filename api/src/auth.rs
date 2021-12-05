@@ -1,6 +1,6 @@
 use rocket::http::Status;
 use rocket::request::{self, FromRequest, Request};
-use rocket::serde::{Serialize,Deserialize};
+use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub enum AuthError {
@@ -32,14 +32,14 @@ impl<'r> FromRequest<'r> for UserClaims {
     type Error = AuthError;
 
     async fn from_request(req: &'r Request<'_>) -> request::Outcome<UserClaims, Self::Error> {
-        let auth_haeder_value = match req.headers().get_one("Authorization") {
+        let auth_header_value = match req.headers().get_one("Authorization") {
             Some(value) => value,
             None => {
                 return request::Outcome::Failure((Status::BadRequest, AuthError::MissingHeader))
             }
         };
 
-        if let Some(token) = auth_haeder_value.strip_prefix("Bearer ") {
+        if let Some(token) = auth_header_value.strip_prefix("Bearer ") {
             match decode_token(token).await {
                 Ok(value) => return request::Outcome::Success(value),
                 Err(_) => {

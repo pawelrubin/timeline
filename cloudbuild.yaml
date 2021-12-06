@@ -6,34 +6,34 @@ steps:
         "docker pull $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest || true \
         && docker pull $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest || exit 0",
       ]
+
   - name: "gcr.io/cloud-builders/docker"
-    args:
-      - build
-      - "-t"
-      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:$COMMIT_SHA"
-      - "-t"
-      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest"
-      - "--cache-from"
-      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest"
-      - api
-      - "-f"
-      - "api/docker/prod/builder.Dockerfile"
+    entrypoint: "bash"
+    args: [
+        "-c",
+        "DOCKER_BUILDKIT=1 \
+        docker build -t $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:$COMMIT_SHA \
+        -t $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest \
+        --cache-from $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest \
+        -f api/docker/prod/builder.Dockerfile \
+        api",
+      ]
     id: Build builder image
+
   - name: gcr.io/cloud-builders/docker
-    args:
-      - build
-      - "-t"
-      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
-      - "-t"
-      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest"
-      - "--cache-from"
-      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest"
-      - "--build-arg"
-      - "BUILDER_IMG=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest"
-      - api
-      - "-f"
-      - api/docker/prod/final.Dockerfile
+    entrypoint: "bash"
+    args: [
+        "-c",
+        "DOCKER_BUILDKIT=1 \
+        docker build -t $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA \
+        -t $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest \
+        --cache-from $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest \
+        --build-arg BUILDER_IMG=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest \
+        -f api/docker/prod/final.Dockerfile \
+        api",
+      ]
     id: Build final image
+
   - name: gcr.io/cloud-builders/docker
     entrypoint: "bash"
     args: [
@@ -44,6 +44,7 @@ steps:
         && docker push $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME-builder:latest",
       ]
     id: Push
+
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
     args:
       - run

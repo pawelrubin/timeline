@@ -77,4 +77,4 @@ tags:
   - gcp-cloud-build-deploy-cloud-run
   - gcp-cloud-build-deploy-cloud-run-managed
   - timeline
-timeout: 1800s
+timeout: 3600s

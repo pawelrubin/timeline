@@ -1,4 +1,6 @@
 pub mod geodata;
 
-pub use geodata::Entity as Geodata;
-pub use geodata::GeoDataJson;
+pub use geodata::Column as GeodataColumn;
+pub use geodata::Entity as GeodataEntity;
+pub use geodata::GeodataJson;
+pub use geodata::Model as GeodataModel;

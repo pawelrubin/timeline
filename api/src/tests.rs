@@ -1,4 +1,4 @@
-use super::entities::geodata::{Activity, GeoDataJson};
+use super::entities::geodata::{Activity, GeodataJson};
 use super::rocket;
 
 use chrono::Utc;
@@ -75,7 +75,7 @@ async fn test_post_geodata() {
     // TODO: Use a test-only database.
     // TODO: Check that the data was actually saved.
     let client = Client::tracked(rocket()).await.unwrap();
-    let data = GeoDataJson {
+    let data = GeodataJson {
         lat: 1.0,
         lng: 2.0,
         timestamp: Utc::now().naive_utc(),

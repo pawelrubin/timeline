@@ -7,13 +7,14 @@ mod tests;
 mod auth;
 
 use std::env;
-
 mod db;
 use crate::db::pool::Db;
 use db::migrations;
 
+mod quantize;
+
 mod entities;
-use entities::{GeoDataJson, Geodata};
+use entities::{GeodataEntity, GeodataJson};
 
 use chrono::{Duration, Utc};
 
@@ -28,9 +29,9 @@ use rocket::{Build, Rocket};
 async fn select_many(
     conn: Connection<'_, Db>,
     user: auth::UserClaims,
-) -> Result<Json<Vec<GeoDataJson>>, rocket::response::Debug<sea_orm::DbErr>> {
+) -> Result<Json<Vec<GeodataJson>>, rocket::response::Debug<sea_orm::DbErr>> {
     let db = conn.into_inner();
-    let db_data: Vec<entities::geodata::Model> = Geodata::find()
+    let db_data: Vec<entities::geodata::Model> = GeodataEntity::find()
         .filter(
             Condition::all()
                 .add(entities::geodata::Column::Uid.eq(user.sub))
@@ -49,7 +50,7 @@ async fn select_many(
 async fn insert_many(
     conn: Connection<'_, Db>,
     user: auth::UserClaims,
-    geodata: Json<Vec<GeoDataJson>>,
+    geodata: Json<Vec<GeodataJson>>,
 ) -> Result<(), rocket::response::Debug<sea_orm::DbErr>> {
     // TODO: handle empty geodata
 
@@ -68,7 +69,7 @@ async fn insert_many(
             ..Default::default()
         });
 
-    Geodata::insert_many(parsed_geodata_vec)
+    GeodataEntity::insert_many(parsed_geodata_vec)
         .exec(db)
         .await
         .expect("Unable to insert geodata");

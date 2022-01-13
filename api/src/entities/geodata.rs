@@ -25,6 +25,23 @@ pub struct Model {
     pub lng: f64,
     pub accuracy: i16,
     pub activity: Activity,
+    pub path_id: Option<i64>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::path::Entity",
+        from = "Column::PathId",
+        to = "super::path::Column::Id"
+    )]
+    Path,
+}
+
+impl Related<super::path::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Path.def()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -37,10 +54,6 @@ pub struct GeodataJson {
     pub activity: Activity,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
-
-impl ActiveModelBehavior for ActiveModel {}
 
 impl From<Model> for GeodataJson {
     fn from(input: Model) -> Self {
@@ -53,3 +66,6 @@ impl From<Model> for GeodataJson {
         }
     }
 }
+
+
+impl ActiveModelBehavior for ActiveModel {}

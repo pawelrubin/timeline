@@ -1,24 +1,15 @@
+use crate::entities::GeodataModel;
+use chrono::Duration;
 use geoutils::Location;
+use sea_orm::entity::*;
 
-use crate::auth;
-use crate::db::pool::Db;
-use crate::entities;
-use crate::entities::{GeodataColumn, GeodataEntity, GeodataJson, GeodataModel};
-use itertools::Itertools;
-
-use chrono::{Duration, Utc};
-
-use sea_orm::query::*;
-use sea_orm_rocket::Connection;
-
-use rocket::serde::json::Json;
-use sea_orm::{entity::*, query::*, ConnectionTrait, DatabaseBackend, EntityTrait, Set, Statement};
+const DEGREE_TO_METERS: f64 = 111320.;
 
 const METERS_THRESHOLD: f64 = 40.;
 const MAX_LINE_DEVIATION: f64 = 40.;
 const NEW_PATH_TIME_MINUTES: i64 = 60;
 
-fn calculate_dir_vec(v1: [f64;2], v2: [f64;2]) -> [f64;2] {
+fn calculate_dir_vec(v1: [f64; 2], v2: [f64; 2]) -> [f64; 2] {
     [v2[0] - v1[0], v2[1] - v1[1]]
 }
 
@@ -33,99 +24,106 @@ fn geo_distance(p1: (f64, f64), p2: (f64, f64)) -> f64 {
 }
 
 fn filter_geodata_by_distance(geodata_vec: Vec<GeodataModel>) -> Vec<GeodataModel> {
-    let initial_fold_vec: Vec<GeodataModel> = vec![geodata_vec[0].to_owned()];
+    let mut geodata_iter = geodata_vec.into_iter();
+    let initial_fold_vec: Vec<GeodataModel> = vec![geodata_iter.next().unwrap()];
 
     // It is worth it to first operate on pointers and then collect values in another iteration,
     // because tuple_windows() uses clone
-    let filtered = geodata_vec
-        .iter()
-        .tuple_windows()
-        .fold(initial_fold_vec, |mut acc, (prev, next)| {
-            let distance_meters = geo_distance((prev.lat, prev.lng), (next.lat, next.lng));
-            if distance_meters > METERS_THRESHOLD {
-                acc.push(*next);
-            }
-            acc
-        });
+    let filtered = geodata_iter.fold(initial_fold_vec, |mut acc, next| {
+        let distance_meters = geo_distance(
+            (acc.last().unwrap().lat, acc.last().unwrap().lng),
+            (next.lat, next.lng),
+        );
+        if distance_meters > METERS_THRESHOLD {
+            acc.push(next);
+        }
+        acc
+    });
     filtered
 }
 
-fn split_geodata_by_time<'a>(geodata_vec: Vec<GeodataModel>) -> Vec<Vec<GeodataModel>> {
-    let initial_fold_vec: Vec<Vec<GeodataModel>> = vec![vec![geodata_vec[0].to_owned()]];
-    let split = geodata_vec
-        .iter()
-        .tuple_windows()
-        .fold(initial_fold_vec, |mut acc, (prev, next)| {
-            if next.timestamp - prev.timestamp > Duration::minutes(NEW_PATH_TIME_MINUTES) {
-                //TODO
+fn split_geodata_by_time(geodata_vec: Vec<GeodataModel>) -> Vec<Vec<GeodataModel>> {
+    let mut geodata_iter = geodata_vec.into_iter();
+    //unwrap is valid, since former functions can't return zero elements
+    let initial_element = geodata_iter.next().unwrap();
+    let initial_timestamp = initial_element.timestamp;
+    let initial_fold_vec: Vec<Vec<GeodataModel>> = vec![vec![initial_element]];
+    let (split, _) = geodata_iter.fold(
+        (initial_fold_vec, initial_timestamp),
+        |(mut acc, mut last_timestamp), next| {
+            if next.timestamp - last_timestamp > Duration::minutes(NEW_PATH_TIME_MINUTES) {
                 acc.push(vec![]);
             }
-            acc.last_mut().unwrap().push(*next);
-            acc
-        });
+            acc.last_mut().unwrap().push(next.to_owned());
+            last_timestamp = next.timestamp;
+            (acc, last_timestamp)
+        },
+    );
     split
-    
 }
 
 fn vector_length(vec: [f64; 2]) -> f64 {
-    (vec[0]*vec[0]+vec[1]*vec[1]).sqrt()
+    (vec[0] * vec[0] + vec[1] * vec[1]).sqrt()
 }
 
-fn check_if_back_tracking(first: [f64;2], prev: [f64;2], next: [f64;2]) -> bool {
+fn check_if_back_tracking(first: [f64; 2], prev: [f64; 2], next: [f64; 2]) -> bool {
     let first_to_prev = [first[0] + prev[0], first[1] + prev[1]];
-    let first_to_next =  [first[0] + next[0], first[1] +next[1]];
+    let first_to_next = [first[0] + next[0], first[1] + next[1]];
     vector_length(first_to_next) < vector_length(first_to_prev)
-
 }
 
-fn calculate_distance_from_line(point: [f64;2],start: [f64;2],end: [f64;2]) -> f64 {
+pub fn calculate_distance_from_line(point: [f64; 2], start: [f64; 2], end: [f64; 2]) -> f64 {
     let dx = end[0] - start[0];
     let dy = end[1] - start[1];
-    let s = ((start[1] - point[1]) * dx - (start[0] - point[0]) * dy) /
-        (dx * dx + dy * dy);
-    s.abs() * ((dx * dx + dy * dy)).sqrt()
+    let s = ((start[1] - point[1]) * dx - (start[0] - point[0]) * dy) / (dx * dx + dy * dy);
+    s.abs() * (dx * dx + dy * dy).sqrt() * DEGREE_TO_METERS
 }
-
-//TODO last iteration
 fn remove_points_inside_lines(path: Vec<GeodataModel>) -> Vec<GeodataModel> {
-    let mut path_windows = path.iter().tuple_windows();
-    let (first, second) = match path_windows.next() {
-        Some((a, b)) => (a, b),
-        None => return vec![path[0]],
+    let mut path_iter = path.into_iter();
+    let (first, second) = match (path_iter.next(), path_iter.next()) {
+        (Some(a), Some(b)) => (a, b),
+        (Some(a), _) => return vec![a],
+        _ => unreachable!("x"), // Previous processing cannot put empty vec as an argument
     };
-    let initial_path_vec = vec![*first];
-    let initial_start = [first.lat, first.lng];
-    let initial_end = [second.lat, second.lng];
-    //TODO check if lat and lng should be swithced
-    let (filtered_path, _, _) = path_windows.fold(
-        (initial_path_vec, initial_start, initial_end),
-        |(mut filtered_path, mut start, mut end), (prev, next)| {
-            let next_xy = [next.lat, next.lng]; 
-            let prev_xy = [prev.lat, prev.lng];
-            let next_is_not_in_line = calculate_distance_from_line(next_xy, start, end) > MAX_LINE_DEVIATION; //TODO the function
-            let next_is_back_tracking = check_if_back_tracking(start, prev_xy, next_xy);
+    let mut first_in_line_xy = [first.lat, first.lng];
+    let mut second_in_line_xy = [second.lat, second.lng];
+    let mut filtered_path = vec![first];
 
-            if next_is_not_in_line || next_is_back_tracking {
-                filtered_path.push(*prev);
-                start = prev_xy;
-                end = next_xy
-            }
-            (filtered_path, start, end)
-        },
-    );
+    let mut prev = second;
+    for next in path_iter {
+        let next_xy = [next.lat, next.lng];
+        let prev_xy = [prev.lat, prev.lng];
+        let next_is_not_in_line =
+            calculate_distance_from_line(next_xy, first_in_line_xy, second_in_line_xy)
+                > MAX_LINE_DEVIATION; //TODO the function
+        let next_is_back_tracking = check_if_back_tracking(first_in_line_xy, prev_xy, next_xy);
+
+        if next_is_not_in_line || next_is_back_tracking {
+            filtered_path.push(prev.to_owned());
+            first_in_line_xy = prev_xy;
+            second_in_line_xy = next_xy;
+        }
+        prev = next;
+    }
+    // prev is now the last element of the path,
+    // which should always be added at the end:
+    // it is either the end of current line
+    // or it breaks the current line and is the end of a new one
+    filtered_path.push(prev);
     filtered_path
 }
-async fn quantize_geodata(
-    geodata_vec: Vec<GeodataModel>
-) -> Vec<Vec<GeodataModel>> {
+
+pub fn quantize_geodata(geodata_vec: Vec<GeodataModel>) -> Vec<Vec<GeodataModel>> {
+    if geodata_vec.is_empty() {
+        return vec![vec![]];
+    }
     let filtered_geodata: Vec<GeodataModel> = filter_geodata_by_distance(geodata_vec);
     let paths: Vec<Vec<GeodataModel>> = split_geodata_by_time(filtered_geodata);
 
     let quantized_paths = paths
         .into_iter()
-        .map(|path| remove_points_inside_lines(path))
+        .map(remove_points_inside_lines)
         .collect::<Vec<Vec<_>>>();
 
     quantized_paths
 }
-

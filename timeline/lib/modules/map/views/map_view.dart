@@ -22,26 +22,29 @@ class _MapViewState extends State<MapView> {
         .then((locationData) {
       locationData.sort((a, b) => a.timestamp.isAfter(b.timestamp) ? 1 : -1);
 
-      var startMarker = Marker(
-          markerId: const MarkerId('start'),
-          position: LatLng(
-              locationData.first.latitude, locationData.first.longitude));
-      var endMarker = Marker(
-          markerId: const MarkerId('end'),
-          position:
-              LatLng(locationData.last.latitude, locationData.last.longitude));
+      if (locationData.length >= 2) {
+        var startMarker = Marker(
+            markerId: const MarkerId('start'),
+            position: LatLng(
+                locationData.first.latitude, locationData.first.longitude));
+        var endMarker = Marker(
+            markerId: const MarkerId('end'),
+            position: LatLng(
+                locationData.last.latitude, locationData.last.longitude));
 
-      var polyline = Polyline(
-          polylineId: const PolylineId('line'),
-          points: locationData
-              .map((e) => LatLng(e.latitude, e.longitude))
-              .toList());
+        var polyline = Polyline(
+            polylineId: const PolylineId('line'),
+            points: locationData
+                .map((e) => LatLng(e.latitude, e.longitude))
+                .toList());
 
-      setState(() {
-        _markers.addAll({startMarker, endMarker});
-        _polylines.add(polyline);
-      });
+        setState(() {
+          _markers.addAll({startMarker, endMarker});
+          _polylines.add(polyline);
+        });
+      }
     }).catchError((e) {
+      print(e);
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Failed to load data')));
     });

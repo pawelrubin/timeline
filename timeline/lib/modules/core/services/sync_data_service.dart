@@ -8,9 +8,10 @@ class SyncDataService {
   Duration syncPeriod;
   DatabaseService? database;
   ApiService? api;
+  late Timer timer;
 
   SyncDataService({this.database, this.api, required this.syncPeriod}) {
-    Timer.periodic(syncPeriod, (_) async {
+    timer = Timer.periodic(syncPeriod, (_) async {
       if (database == null || api == null) return;
 
       // this is not perfect, but good enough for now
@@ -19,7 +20,7 @@ class SyncDataService {
         await api
             ?.updateData(newData)
             .then((value) => database?.clearLocations());
-      } catch (_) {
+      } catch (e) {
         log('Failed to sync to database');
       }
     });

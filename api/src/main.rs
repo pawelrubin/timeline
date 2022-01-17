@@ -14,7 +14,7 @@ use db::migrations;
 mod quantize;
 
 mod entities;
-use chrono::{Duration, Utc};
+use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use entities::{GeodataEntity, GeodataJson};
 use quantize::quantize_geodata;
 
@@ -25,10 +25,11 @@ use rocket::fairing::{self, AdHoc};
 use rocket::serde::json::Json;
 use rocket::{Build, Rocket};
 
-#[get("/geodata")]
+#[get("/geodata?<on_day>")]
 async fn select_many(
     conn: Connection<'_, Db>,
     user: auth::UserClaims,
+    on_day: Option<String>, // date in format YYYY-MM-DD
 ) -> Result<Json<Vec<GeodataJson>>, rocket::response::Debug<sea_orm::DbErr>> {
     let db = conn.into_inner();
     let db_data: Vec<entities::geodata::Model> = GeodataEntity::find()
@@ -36,13 +37,18 @@ async fn select_many(
             Condition::all()
                 .add(entities::geodata::Column::Uid.eq(user.sub))
                 .add(
-                    entities::geodata::Column::Timestamp
-                        .gt(Utc::now().naive_utc() - Duration::days(7)),
+                    entities::geodata::Column::Timestamp.gt(match on_day {
+                        Some(on_day) => NaiveDate::parse_from_str(&on_day, "%Y-%m-%d")
+                            .unwrap_or((Utc::now().naive_utc() - Duration::days(7)).date())
+                            .and_hms(0, 0, 0),
+                        None => Utc::now().naive_utc() - Duration::days(7),
+                    }),
                 ),
         )
         .all(db)
         .await
         .expect("could not find geodata");
+
     let filtered_db_data = quantize_geodata(db_data);
     Ok(Json(
         filtered_db_data.into_iter().map(|x| x.into()).collect(),

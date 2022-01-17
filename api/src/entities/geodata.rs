@@ -3,7 +3,7 @@ use rocket::serde::{Deserialize, Serialize};
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, EnumIter, PartialEq, DeriveActiveEnum, Serialize, Deserialize)]
-#[serde(crate = "rocket::serde", rename_all= "snake_case")]
+#[serde(crate = "rocket::serde", rename_all = "snake_case")]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "activity")]
 pub enum Activity {
     #[sea_orm(string_value = "still")]
@@ -15,7 +15,7 @@ pub enum Activity {
     #[sea_orm(string_value = "on_bicycle")]
     OnBicycle,
     #[sea_orm(string_value = "running")]
-    Running
+    Running,
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]

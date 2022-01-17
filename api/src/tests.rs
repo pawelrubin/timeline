@@ -79,7 +79,7 @@ async fn test_post_geodata() {
         lat: 1.0,
         lng: 2.0,
         timestamp: Utc::now().naive_utc(),
-        accuracy: 10,
+        accuracy: 10.0,
         activity: Activity::OnFoot,
     };
     let response = client

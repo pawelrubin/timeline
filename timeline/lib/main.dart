@@ -42,7 +42,9 @@ void main() async {
           create: (_) =>
               DatabaseService(locationBox: locationBox, utilBox: utilBox)),
       Provider(create: (_) => AuthenticationService()),
-      Provider(create: (_) => ApiService(apiBaseUrl: apiBaseUrl)),
+      Provider(
+        create: (_) => ApiService(apiBaseUrl: apiBaseUrl),
+      ),
       ProxyProvider<DatabaseService, LocationService>(
         update: (context, database, location) =>
             LocationService(database: database),
@@ -54,6 +56,7 @@ void main() async {
             SyncDataService(syncPeriod: syncInterval, database: db, api: api),
         create: (_) => SyncDataService(syncPeriod: syncInterval),
         lazy: false,
+        dispose: (_, syncService) => syncService.timer.cancel(),
       )
     ],
     child: const TimelineApp(),

@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 
 part 'location_entry.g.dart';
 
@@ -39,7 +40,7 @@ class LocationEntry extends HiveObject {
     return {
       'lng': longitude,
       'lat': latitude,
-      'timestamp': timestamp.toIso8601String(),
+      'timestamp': DateFormat('yyyy-MM-ddTH:m:s').format(timestamp),
       'accuracy': accuracy,
       'activity': activity
     };

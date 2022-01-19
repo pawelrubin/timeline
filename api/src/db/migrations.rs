@@ -36,6 +36,6 @@ where
 }
 
 pub async fn create_tables(db: &DbConn) {
-    create_enum(db, Geodata).await;
-    create_table(db, Geodata).await;
+    create_enum(db, GeodataEntity).await;
+    create_table(db, GeodataEntity).await;
 }

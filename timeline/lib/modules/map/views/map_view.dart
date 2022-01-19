@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:timeline/modules/core/model/location_entry.dart';
 import 'package:timeline/modules/core/services/api_service.dart';
 import 'package:timeline/modules/core/widgets/layout.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
@@ -10,10 +13,24 @@ class MapView extends StatefulWidget {
 
   @override
   State<StatefulWidget> createState() => _MapViewState();
+
+  static LatLngBounds getLatLngBounds(List<LocationEntry> list) {
+    double x0 = list.first.latitude, x1 = list.first.latitude;
+    double y0 = list.first.longitude, y1 = list.first.longitude;
+
+    for (final latLng in list) {
+      if (latLng.latitude > x1) x1 = latLng.latitude;
+      if (latLng.latitude < x0) x0 = latLng.latitude;
+      if (latLng.longitude > y1) y1 = latLng.longitude;
+      if (latLng.longitude < y0) y0 = latLng.longitude;
+    }
+
+    return LatLngBounds(northeast: LatLng(x1, y1), southwest: LatLng(x0, y0));
+  }
 }
 
 class _MapViewState extends State<MapView> {
-  final CameraPosition _initial = const CameraPosition(target: LatLng(0, 0));
+  final Completer<GoogleMapController> _mapController = Completer();
   final Set<Polyline> _polylines = {};
   final Set<Marker> _markers = {};
 
@@ -36,14 +53,24 @@ class _MapViewState extends State<MapView> {
                 locationData.last.latitude, locationData.last.longitude));
 
         var polyline = Polyline(
+            color: Colors.blue,
             polylineId: const PolylineId('line'),
             points: locationData
                 .map((e) => LatLng(e.latitude, e.longitude))
                 .toList());
 
+        _mapController.future.then((controller) => controller.moveCamera(
+            CameraUpdate.newLatLngBounds(
+                MapView.getLatLngBounds(locationData), 50)));
+
         setState(() {
           _markers.addAll({startMarker, endMarker});
           _polylines.add(polyline);
+        });
+      } else {
+        setState(() {
+          _markers.clear();
+          _polylines.clear();
         });
       }
     }).catchError((e) {
@@ -78,11 +105,16 @@ class _MapViewState extends State<MapView> {
               onPressed: () => DatePicker.showDatePicker(context,
                   onConfirm: _setDate, currentTime: _date),
               child: const Text('Choose date')),
-          GoogleMap(
-            initialCameraPosition: _initial,
+          Expanded(
+              child: GoogleMap(
+            onMapCreated: (GoogleMapController controller) {
+              _mapController.complete(controller);
+            },
+            initialCameraPosition:
+                const CameraPosition(target: LatLng(0, 0), zoom: 0),
             markers: _markers,
             polylines: _polylines,
-          )
+          ))
         ],
       )),
     );

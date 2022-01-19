@@ -44,6 +44,8 @@ class ApiService {
       'Authorization': 'Bearer $token'
     };
 
+    print(url);
+
     http.Response response = await http.get(url, headers: headers);
     List<dynamic> data = jsonDecode(response.body);
 

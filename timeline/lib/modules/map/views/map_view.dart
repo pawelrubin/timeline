@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:timeline/modules/core/services/api_service.dart';
 import 'package:timeline/modules/core/widgets/layout.dart';
+import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 
 class MapView extends StatefulWidget {
   const MapView({Key? key}) : super(key: key);
@@ -16,9 +17,11 @@ class _MapViewState extends State<MapView> {
   final Set<Polyline> _polylines = {};
   final Set<Marker> _markers = {};
 
+  DateTime _date = DateTime.now();
+
   _refreshData(BuildContext context) async {
     Provider.of<ApiService>(context, listen: false)
-        .fetchData()
+        .fetchData(_date)
         .then((locationData) {
       locationData.sort((a, b) => a.timestamp.isAfter(b.timestamp) ? 1 : -1);
 
@@ -44,10 +47,18 @@ class _MapViewState extends State<MapView> {
         });
       }
     }).catchError((e) {
-      print(e);
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Failed to load data')));
     });
+  }
+
+  _setDate(DateTime? date) {
+    if (date != null) {
+      setState(() {
+        _date = date;
+      });
+      _refreshData(context);
+    }
   }
 
   @override
@@ -61,10 +72,18 @@ class _MapViewState extends State<MapView> {
   Widget build(BuildContext context) {
     return Layout(
       body: Center(
-          child: GoogleMap(
-        initialCameraPosition: _initial,
-        markers: _markers,
-        polylines: _polylines,
+          child: Column(
+        children: [
+          TextButton(
+              onPressed: () => DatePicker.showDatePicker(context,
+                  onConfirm: _setDate, currentTime: _date),
+              child: const Text('Choose date')),
+          GoogleMap(
+            initialCameraPosition: _initial,
+            markers: _markers,
+            polylines: _polylines,
+          )
+        ],
       )),
     );
   }

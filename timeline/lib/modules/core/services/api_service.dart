@@ -4,12 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:timeline/modules/core/model/location_entry.dart';
 import 'package:http/http.dart' as http;
 
+const CHUNK_SIZE = 100;
+
 class ApiService {
   String apiBaseUrl;
 
   ApiService({required this.apiBaseUrl});
 
-  Future<void> updateData(List<LocationEntry> data) async {
+  Future<void> _updateBatchData(List<LocationEntry> data) async {
     var token = await FirebaseAuth.instance.currentUser!.getIdToken();
     var url = Uri.parse('$apiBaseUrl/geodata');
     var headers = {
@@ -25,9 +27,18 @@ class ApiService {
     );
   }
 
-  Future<List<LocationEntry>> fetchData() async {
+  Future<void> updateData(List<LocationEntry> data) async {
+    for (var i = 0; i < data.length; i += CHUNK_SIZE) {
+      var batch = data.sublist(
+          i, i + CHUNK_SIZE > data.length ? data.length : i + CHUNK_SIZE);
+      await _updateBatchData(batch);
+    }
+  }
+
+  Future<List<LocationEntry>> fetchData(DateTime date) async {
     var token = await FirebaseAuth.instance.currentUser!.getIdToken();
-    var url = Uri.parse('$apiBaseUrl/geodata');
+    var url = Uri.parse(
+        '$apiBaseUrl/geodata?on_day=${date.year}-${date.month}-${date.day}');
     var headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token'

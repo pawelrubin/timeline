@@ -14,7 +14,7 @@ use db::migrations;
 mod quantize;
 
 mod entities;
-use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use chrono::{Duration, NaiveDate, Utc};
 use entities::{GeodataEntity, GeodataJson};
 use quantize::quantize_geodata;
 
@@ -32,18 +32,29 @@ async fn select_many(
     on_day: Option<String>, // date in format YYYY-MM-DD
 ) -> Result<Json<Vec<GeodataJson>>, rocket::response::Debug<sea_orm::DbErr>> {
     let db = conn.into_inner();
+    let (lt_value, gt_value) = match on_day {
+        Some(on_day) => {
+            let lt_value = NaiveDate::parse_from_str(&on_day, "%Y-%m-%d")
+                .unwrap_or(Utc::now().naive_utc().date())
+                .and_hms(23, 59, 59);
+            let gt_value = NaiveDate::parse_from_str(&on_day, "%Y-%m-%d")
+                .unwrap_or((Utc::now().naive_utc() - Duration::days(7)).date())
+                .and_hms(0, 0, 0);
+            (lt_value, gt_value)
+        }
+        None => {
+            let lt_value = Utc::now().naive_utc();
+            let gt_value = Utc::now().naive_utc() - Duration::days(7);
+            (lt_value, gt_value)
+        }
+    };
+
     let db_data: Vec<entities::geodata::Model> = GeodataEntity::find()
         .filter(
             Condition::all()
                 .add(entities::geodata::Column::Uid.eq(user.sub))
-                .add(
-                    entities::geodata::Column::Timestamp.gt(match on_day {
-                        Some(on_day) => NaiveDate::parse_from_str(&on_day, "%Y-%m-%d")
-                            .unwrap_or((Utc::now().naive_utc() - Duration::days(7)).date())
-                            .and_hms(0, 0, 0),
-                        None => Utc::now().naive_utc() - Duration::days(7),
-                    }),
-                ),
+                .add(entities::geodata::Column::Timestamp.gt(gt_value))
+                .add(entities::geodata::Column::Timestamp.lt(lt_value)),
         )
         .all(db)
         .await

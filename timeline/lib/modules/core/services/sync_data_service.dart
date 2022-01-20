@@ -9,10 +9,12 @@ class SyncDataService {
   DatabaseService? database;
   ApiService? api;
   late Timer timer;
+  var _isUpdating = false;
 
   SyncDataService({this.database, this.api, required this.syncPeriod}) {
     timer = Timer.periodic(syncPeriod, (_) async {
-      if (database == null || api == null) return;
+      if (_isUpdating || database == null || api == null) return;
+      _isUpdating = true;
 
       // this is not perfect, but good enough for now
       var newData = database?.getCurrentLocations() ?? [];
@@ -23,6 +25,7 @@ class SyncDataService {
       } catch (e) {
         log('Failed to sync to database');
       }
+      _isUpdating = false;
     });
   }
 }

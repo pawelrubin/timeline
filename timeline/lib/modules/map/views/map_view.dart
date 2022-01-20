@@ -64,6 +64,8 @@ class _MapViewState extends State<MapView> {
                 MapView.getLatLngBounds(locationData), 50)));
 
         setState(() {
+          _polylines.clear();
+          _markers.clear();
           _markers.addAll({startMarker, endMarker});
           _polylines.add(polyline);
         });
